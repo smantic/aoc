@@ -1,0 +1,22 @@
+[ 1, 1, 1, 1, ]
+[ x, x, x, 1, ]
+[ x, x, x, 1, ]
+[ x, x, x, 1, ]
+
+[ 21, 23, 24, 25 ]
+[ 11,  2,  3,  4 ]
+[ 55, 42,  5,  6 ]
+[ 10, 66, 77, 78 ]
+
+check -> 
+    acc 
+    diag1
+    diag2
+    for each in board 
+        if num == 31(11111)
+        acc = acc && num
+        diag1 = diag1 || each[i] 
+        diag2 = diag2 || each[ len(each) -i ]
+    if acc in ( 1, 2, 4, 8 ) 
+
+
