@@ -59,6 +59,7 @@ func main() {
 			}
 
 			if split[2] == "/" {
+				cur = &root
 				continue
 			}
 
