@@ -87,7 +87,7 @@ func sum(n Node, total int) int {
 		sumChildern = sumChildern + sum(*c, total)
 	}
 
-	// checky side effect to get the result.
+	// cheeky side effect to get the result.
 	sumv := sumChildern + n.Space
 	if sumv >= 2080344 && sumv < result {
 		result = sumv
