@@ -11,10 +11,9 @@ import (
 )
 
 type Node struct {
-	Space             int
-	SpaceWithChildern int
-	Parent            *Node
-	Childern          map[string]*Node
+	Space    int
+	Parent   *Node
+	Childern map[string]*Node
 }
 
 func NewNode(p *Node) Node {
