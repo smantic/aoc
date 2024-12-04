@@ -1,6 +1,8 @@
 const std = @import("std");
 
 pub fn main() !void {
+    const stdout = std.io.getStdOut().writer();
+
     const allocator = std.heap.page_allocator;
     var l1 = std.ArrayList(i64).init(allocator);
     var l2 = std.ArrayList(i64).init(allocator);
@@ -30,12 +32,23 @@ pub fn main() !void {
     std.mem.sort(i64, l2.items, {}, std.sort.asc(i64));
 
     var i: usize = 0;
-    var sum: u64 = 0;
+    var sum: i64 = 0;
+    var ri: usize = 0;
     while (i < l1.items.len) : (i += 1) {
-        sum = sum + @abs(l1.items[i] - l2.items[i]);
+        var freq: i64 = 0;
+        while (l1.items[i] >= l2.items[ri]) {
+            if (ri + 1 == l2.items.len) {
+                break;
+            }
+            if (l1.items[i] == l2.items[ri]) {
+                freq += 1;
+            }
+            ri += 1;
+        }
+        sum = sum + l1.items[i] * freq;
     }
 
-    std.log.info("total distance: {d}\n", .{sum});
+    try stdout.print("total distance: {d}\n", .{sum});
 }
 
 test "simple test" {
