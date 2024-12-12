@@ -22,15 +22,40 @@ pub fn main() !void {
         try tokens.append(token);
     }
 
-    const nums = tokens.items;
-
     var sum: i64 = 0;
     var i: usize = 0;
-    while (i < nums.len) : (i = i + 1) {
-        std.log.debug("nums: {s} * {s}", .{ nums[i].x, nums[i].y });
-        const x = try std.fmt.parseInt(i64, nums[i].x, 10);
-        const y = try std.fmt.parseInt(i64, nums[i].y, 10);
-        sum = sum + (x * y);
+    var do: bool = true;
+    while (i < tokens.items.len) : (i = i + 1) {
+        const tok = tokens.items[i];
+
+        if (tok.Tag == Tag.invalid) {
+            continue;
+        }
+
+        //std.log.info("token: {any}", .{tok.Tag});
+
+        if (tok.Tag == Tag.do) {
+            do = true;
+            continue;
+        }
+
+        if (tok.Tag == Tag.dont) {
+            do = false;
+            continue;
+        }
+
+        if (tok.Tag == Tag.mul and do) {
+            if (i + 2 >= tokens.items.len or tokens.items[i + 1].Tag != Tag.number or tokens.items[i + 2].Tag != Tag.number) {
+                continue;
+            }
+
+            const x = try std.fmt.parseInt(i64, tokens.items[i + 1].data.?, 10);
+            const y = try std.fmt.parseInt(i64, tokens.items[i + 2].data.?, 10);
+            sum = sum + (x * y);
+            std.log.info("{d} : {d}", .{ x, y });
+
+            i = i + 2;
+        }
     }
 
     try stdout.print("sum: {d} \n", .{sum});
@@ -38,10 +63,14 @@ pub fn main() !void {
 }
 
 const Tag = enum {
+    invalid,
+    mul,
     number,
+    do,
+    dont,
 };
 
-const Token = struct { Tag: Tag = undefined, x: []const u8 = undefined, y: []const u8 = undefined };
+const Token = struct { Tag: Tag = undefined, data: ?[]const u8 = undefined };
 
 pub const Tokenizer = struct {
     buffer: []const u8,
@@ -50,8 +79,8 @@ pub const Tokenizer = struct {
 
     const State = enum {
         start,
-        mul,
-        number,
+        x,
+        y,
     };
 
     pub fn init(buff: []const u8) Tokenizer {
@@ -75,45 +104,59 @@ pub const Tokenizer = struct {
                         start = self.index;
                         switch (self.buffer[self.index]) {
                             'm' => {
-                                self.state = State.mul;
+                                //std.log.debug("{s}", .{self.buffer[self.index .. self.index + 4]});
+                                if (self.index + 4 < self.buffer.len and std.mem.eql(u8, self.buffer[self.index .. self.index + 4], "mul(")) {
+                                    self.index = self.index + 3;
+                                    self.state = State.x;
+                                    result.Tag = Tag.mul;
+                                    return result;
+                                }
                                 continue;
+                            },
+                            'd' => {
+                                if (self.index + 7 < self.buffer.len and std.mem.eql(u8, self.buffer[self.index .. self.index + 7], "don't()")) {
+                                    //std.log.debug("{s}", .{self.buffer[self.index .. self.index + 7]});
+                                    result.Tag = Tag.dont;
+                                    return result;
+                                }
+                                if (self.index + 4 < self.buffer.len and std.mem.eql(u8, self.buffer[self.index .. self.index + 4], "do()")) {
+                                    //std.log.debug("{s}", .{self.buffer[self.index .. self.index + 4]});
+                                    result.Tag = Tag.do;
+                                    return result;
+                                }
                             },
                             else => continue,
                         }
                     },
-                    .mul => {
-                        if (self.index + 3 >= self.buffer.len) {
-                            self.state = State.start;
-                            continue;
-                        }
-                        if (std.mem.eql(u8, self.buffer[self.index .. self.index + 3], "ul(")) {
-                            start = self.index + 3;
-                            self.index = self.index + 2;
-                            self.state = State.number;
-                            continue;
-                        } else {
-                            self.state = State.start;
-                            continue;
-                        }
-                    },
-                    .number => {
+                    .x => {
                         switch (self.buffer[self.index]) {
                             '0'...'9' => continue,
                             ',' => {
-                                result.x = self.buffer[start..self.index];
+                                result.data = self.buffer[start..self.index];
                                 result.Tag = Tag.number;
-                                // keep state on num.
-                                start = self.index + 1;
+                                self.state = State.y;
+                                return result;
                             },
+                            else => {
+                                result.Tag = Tag.invalid;
+                                self.state = State.start;
+                                return result;
+                            },
+                        }
+                    },
+                    .y => {
+                        switch (self.buffer[self.index]) {
+                            '0'...'9' => continue,
                             ')' => {
-                                result.y = self.buffer[start..self.index];
-
+                                result.data = self.buffer[start..self.index];
+                                result.Tag = Tag.number;
                                 self.state = State.start;
                                 return result;
                             },
                             else => {
+                                result.Tag = Tag.invalid;
                                 self.state = State.start;
-                                continue;
+                                return result;
                             },
                         }
                     },
